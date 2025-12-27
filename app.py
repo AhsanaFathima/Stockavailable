@@ -110,7 +110,7 @@ def order_updated():
         json={
             "channel": CHANNEL_ID,
             "thread_ts": thread_ts,
-            "text": "Stock available"
+            "text": "📦 Stock available"
         }
     )
 
