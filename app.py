@@ -79,7 +79,8 @@ def order_updated():
 
     print(f"📌 stock_status metafield value: {stock}")
 
-    if stock != "stock_available":
+    if not stock or stock.strip().lower().replace(" ", "_") != "stock_available":
+
         print("⏭️ Stock not available yet — ignoring")
         return "Ignored", 200
 
