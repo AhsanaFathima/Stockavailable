@@ -7,7 +7,7 @@ app = Flask(__name__)
 SLACK_TOKEN = os.getenv("SLACK_BOT_TOKEN")
 SHOPIFY_TOKEN = os.getenv("SHOPIFY_ACCESS_TOKEN")
 SHOP = os.getenv("SHOPIFY_SHOP")
-CHANNEL_ID = "C0A068PHZMY"  # #shopify-slack
+CHANNEL_ID = "C0A02M2VCTB"  # #order
 
 # STRICT MATCH: ONLY "ST.order #1234"
 ORDER_REGEX = re.compile(r"\bST\.order\s+#(\d+)\b")
