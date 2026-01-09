@@ -15,6 +15,9 @@ ORDER_REGEX = re.compile(r"\bST\.order\s+#(\d+)\b")
 # In-memory store (OK for now)
 order_threads = {}
 
+# ✅ DUPLICATE PREVENTION STORE
+processed_orders = set()
+
 print("🚀 App started")
 print("🏪 Shopify shop:", SHOP)
 print("📢 Slack channel:", CHANNEL_ID)
@@ -61,7 +64,7 @@ def add_stock_reaction(thread_ts):
         json={
             "channel": CHANNEL_ID,
             "timestamp": thread_ts,
-            "name": "package"  # 📦 emoji
+            "name": "package"
         }
     )
 
@@ -120,6 +123,15 @@ def order_updated():
 
     print("✅ Stock is AVAILABLE")
 
+    # --------------------------------------------------
+    # ✅ DUPLICATE PREVENTION
+    # --------------------------------------------------
+    if order_number in processed_orders:
+        print("⛔ Duplicate webhook ignored for order", order_number)
+        return "Duplicate ignored", 200
+
+    print("🆕 First time processing order", order_number)
+
     # Find Slack thread
     thread_ts = order_threads.get(order_number) or find_thread_ts(order_number)
 
@@ -150,6 +162,8 @@ def order_updated():
 
     if slack_resp.ok and slack_resp.json().get("ok"):
         print("✅ Slack thread reply sent")
+        processed_orders.add(order_number)
+        print("🧠 Order stored in processed list:", processed_orders)
     else:
         print("❌ Slack message failed:", slack_resp.text)
 
