@@ -23,8 +23,6 @@ print("🏪 Shopify shop:", SHOP)
 print("📢 Slack channel:", CHANNEL_ID)
 
 # --------------------------------------------------
-# Find Slack thread timestamp for order
-# --------------------------------------------------
 def find_thread_ts(order_number):
     print(f"🔍 Searching Slack thread for order #{order_number}")
 
@@ -49,8 +47,7 @@ def find_thread_ts(order_number):
     print(f"❌ No Slack message found for order #{order_number}")
     return None
 
-# --------------------------------------------------
-# Add 📦 reaction to original order message
+
 # --------------------------------------------------
 def add_stock_reaction(thread_ts):
     print("📦 Adding stock available reaction")
@@ -73,8 +70,7 @@ def add_stock_reaction(thread_ts):
     else:
         print("❌ Reaction add failed:", resp.text)
 
-# --------------------------------------------------
-# Shopify webhook
+
 # --------------------------------------------------
 @app.route("/webhook/order-updated", methods=["POST"])
 def order_updated():
@@ -87,14 +83,10 @@ def order_updated():
     print(f"🆔 Order number: {order_number}")
     print(f"🆔 Order ID: {order_id}")
 
-    # Fetch metafields
     url = f"https://{SHOP}.myshopify.com/admin/api/2024-01/orders/{order_id}/metafields.json"
     print("🌐 Fetching metafields:", url)
 
-    r = requests.get(
-        url,
-        headers={"X-Shopify-Access-Token": SHOPIFY_TOKEN}
-    )
+    r = requests.get(url, headers={"X-Shopify-Access-Token": SHOPIFY_TOKEN})
 
     if not r.ok:
         print("❌ Failed to fetch metafields:", r.text)
@@ -124,13 +116,15 @@ def order_updated():
     print("✅ Stock is AVAILABLE")
 
     # --------------------------------------------------
-    # ✅ DUPLICATE PREVENTION
+    # ✅ DUPLICATE PREVENTION (FIXED)
     # --------------------------------------------------
-    if order_number in processed_orders:
-        print("⛔ Duplicate webhook ignored for order", order_number)
+    dedup_key = f"{order_number}:{normalized_stock}"
+
+    if dedup_key in processed_orders:
+        print("⛔ Duplicate webhook ignored for", dedup_key)
         return "Duplicate ignored", 200
 
-    print("🆕 First time processing order", order_number)
+    print("🆕 First time processing", dedup_key)
 
     # Find Slack thread
     thread_ts = order_threads.get(order_number) or find_thread_ts(order_number)
@@ -141,10 +135,8 @@ def order_updated():
 
     order_threads[order_number] = thread_ts
 
-    # Add 📦 reaction
     add_stock_reaction(thread_ts)
 
-    # Send thread reply
     print(f"💬 Sending Slack thread reply for order #{order_number}")
 
     slack_resp = requests.post(
@@ -162,8 +154,8 @@ def order_updated():
 
     if slack_resp.ok and slack_resp.json().get("ok"):
         print("✅ Slack thread reply sent")
-        processed_orders.add(order_number)
-        print("🧠 Order stored in processed list:", processed_orders)
+        processed_orders.add(dedup_key)
+        print("🧠 Stored in processed list:", processed_orders)
     else:
         print("❌ Slack message failed:", slack_resp.text)
 
